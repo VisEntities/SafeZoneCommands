@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafeZoneCommands", "SafeZoneCommands.csproj", "{1AB7DD18-20B3-4A86-9842-E932CD7F253C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1AB7DD18-20B3-4A86-9842-E932CD7F253C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AB7DD18-20B3-4A86-9842-E932CD7F253C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AB7DD18-20B3-4A86-9842-E932CD7F253C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AB7DD18-20B3-4A86-9842-E932CD7F253C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {16B15200-7F18-41DE-BED4-ECF664E6C789}
+	EndGlobalSection
+EndGlobal
