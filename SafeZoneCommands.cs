@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Oxide.Plugins
 {
-    [Info("Safe Zone Commands", "VisEntities", "1.0.0")]
+    [Info("Safe Zone Commands", "VisEntities", "1.1.0")]
     [Description("Execute and block commands in safe zones.")]
     public class SafeZoneCommands : RustPlugin
     {
@@ -36,6 +36,12 @@ namespace Oxide.Plugins
 
             [JsonProperty("Commands To Run")]
             public List<CommandConfig> CommandsToRun { get; set; }
+
+            [JsonProperty("Enter Message")]
+            public string EnterMessage { get; set; }
+
+            [JsonProperty("Leave Message")]
+            public string LeaveMessage { get; set; }
         }
 
         private class CommandConfig
@@ -82,6 +88,15 @@ namespace Oxide.Plugins
             if (string.Compare(_config.Version, "1.0.0") < 0)
                 _config = defaultConfig;
 
+            if (string.Compare(_config.Version, "1.1.0") < 0)
+            {
+                foreach (SafeZoneConfig safeZone in _config.SafeZones)
+                {
+                    safeZone.EnterMessage = "Welcome to {monumentName}, {playerName}!";
+                    safeZone.LeaveMessage = "Goodbye, {playerName}. Hope you had a great time at {monumentName}!";
+                }
+            }
+
             PrintWarning("Config update complete! Updated from version " + _config.Version + " to " + Version.ToString());
             _config.Version = Version.ToString();
         }
@@ -107,7 +122,7 @@ namespace Oxide.Plugins
                             {
                                 Type = CommandType.Chat,
                                 Trigger = CommandTrigger.Enter,
-                                Command = "Hello! {playerName} here, currently at {monumentName} in grid {grid} to recycle some items."
+                                Command = "Hello! {playerName} here, currently at {monumentName} in grid {grid} to recycle some items.",
                             },
                             new CommandConfig
                             {
@@ -119,9 +134,11 @@ namespace Oxide.Plugins
                             {
                                 Type = CommandType.Server,
                                 Trigger = CommandTrigger.Enter,
-                                Command = "inventory.giveto {playerId} scrap 50"
+                                Command = "inventory.giveto {playerId} scrap 50",
                             }
-                        }
+                        },
+                        EnterMessage = "Welcome to {monumentName}, {playerName}!",
+                        LeaveMessage = "Goodbye, {playerName}. Hope you had a great time at {monumentName}!"
                     }
                 }
             };
@@ -168,6 +185,11 @@ namespace Oxide.Plugins
                             RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
                         }
                     }
+
+                    if (!string.IsNullOrEmpty(matchingSafeZone.EnterMessage))
+                    {
+                        SendFormattedMessage(player, matchingSafeZone.EnterMessage, matchingSafeZone.MonumentName);
+                    }
                 }
             }
         }
@@ -196,6 +218,11 @@ namespace Oxide.Plugins
                         {
                             RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
                         }
+                    }
+
+                    if (!string.IsNullOrEmpty(matchingSafeZone.LeaveMessage))
+                    {
+                        SendFormattedMessage(player, matchingSafeZone.LeaveMessage, matchingSafeZone.MonumentName);
                     }
                 }
             }
@@ -240,6 +267,26 @@ namespace Oxide.Plugins
         }
 
         #endregion Monument Name Formatting
+
+        #region Enter and Leave Message Formatting
+
+        private void SendFormattedMessage(BasePlayer player, string message, string monumentName)
+        {
+            string formattedMonumentName = GetMonumentNiceName(monumentName);
+
+            string withPlaceholdersReplaced = message
+                .Replace("{playerId}", player.UserIDString)
+                .Replace("{playerName}", player.displayName)
+                .Replace("{positionX}", player.transform.position.x.ToString())
+                .Replace("{positionY}", player.transform.position.y.ToString())
+                .Replace("{positionZ}", player.transform.position.z.ToString())
+                .Replace("{grid}", PhoneController.PositionToGridCoord(player.transform.position))
+                .Replace("{monumentName}", formattedMonumentName);
+
+            SendReply(player, withPlaceholdersReplaced);
+        }
+
+        #endregion Enter and Leave Message Formatting
 
         #region Command Execution
 
