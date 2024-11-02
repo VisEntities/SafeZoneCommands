@@ -1,10 +1,17 @@
-﻿using Newtonsoft.Json;
+﻿/*
+ * Copyright (C) 2024 Game4Freak.io
+ * This mod is provided under the Game4Freak EULA.
+ * Full legal terms can be found at https://game4freak.io/eula/
+ */
+
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Oxide.Plugins
 {
-    [Info("Safe Zone Commands", "VisEntities", "1.1.0")]
+    [Info("Safe Zone Commands", "VisEntities", "1.2.0")]
     [Description("Execute and block commands in safe zones.")]
     public class SafeZoneCommands : RustPlugin
     {
@@ -33,6 +40,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("Blacklisted Commands")]
             public List<string> BlacklistedCommands { get; set; }
+
+            [JsonProperty("Run Random Command ")]
+            public bool RunRandomCommand { get; set; }
 
             [JsonProperty("Commands To Run")]
             public List<CommandConfig> CommandsToRun { get; set; }
@@ -97,6 +107,14 @@ namespace Oxide.Plugins
                 }
             }
 
+            if (string.Compare(_config.Version, "1.2.0") < 0)
+            {
+                foreach (SafeZoneConfig safeZone in _config.SafeZones)
+                {
+                    safeZone.RunRandomCommand = false;
+                }
+            }
+
             PrintWarning("Config update complete! Updated from version " + _config.Version + " to " + Version.ToString());
             _config.Version = Version.ToString();
         }
@@ -122,7 +140,7 @@ namespace Oxide.Plugins
                             {
                                 Type = CommandType.Chat,
                                 Trigger = CommandTrigger.Enter,
-                                Command = "Hello! {playerName} here, currently at {monumentName} in grid {grid} to recycle some items.",
+                                Command = "Hello! {PlayerName} here, currently at {MonumentName} in grid {Grid} to recycle some items.",
                             },
                             new CommandConfig
                             {
@@ -134,11 +152,11 @@ namespace Oxide.Plugins
                             {
                                 Type = CommandType.Server,
                                 Trigger = CommandTrigger.Enter,
-                                Command = "inventory.giveto {playerId} scrap 50",
+                                Command = "inventory.giveto {PlayerId} scrap 50",
                             }
                         },
-                        EnterMessage = "Welcome to {monumentName}, {playerName}!",
-                        LeaveMessage = "Goodbye, {playerName}. Hope you had a great time at {monumentName}!"
+                        EnterMessage = "Welcome to {MonumentName}, {PlayerName}!",
+                        LeaveMessage = "Goodbye, {PlayerName}. Hope you had a great time at {MonumentName}!"
                     }
                 }
             };
@@ -178,11 +196,22 @@ namespace Oxide.Plugins
 
                 if (matchingSafeZone != null)
                 {
-                    foreach (var commandConfig in matchingSafeZone.CommandsToRun)
+                    if (matchingSafeZone.RunRandomCommand && matchingSafeZone.CommandsToRun.Any())
                     {
-                        if (commandConfig.Trigger == CommandTrigger.Enter)
+                        var randomCommandConfig = matchingSafeZone.CommandsToRun[UnityEngine.Random.Range(0, matchingSafeZone.CommandsToRun.Count)];
+                        if (randomCommandConfig.Trigger == CommandTrigger.Enter)
                         {
-                            RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
+                            RunCommand(player, randomCommandConfig.Type, randomCommandConfig.Command, matchingSafeZone.MonumentName);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var commandConfig in matchingSafeZone.CommandsToRun)
+                        {
+                            if (commandConfig.Trigger == CommandTrigger.Enter)
+                            {
+                                RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
+                            }
                         }
                     }
 
@@ -212,11 +241,22 @@ namespace Oxide.Plugins
 
                 if (matchingSafeZone != null)
                 {
-                    foreach (var commandConfig in matchingSafeZone.CommandsToRun)
+                    if (matchingSafeZone.RunRandomCommand && matchingSafeZone.CommandsToRun.Any())
                     {
-                        if (commandConfig.Trigger == CommandTrigger.Leave)
+                        var randomCommandConfig = matchingSafeZone.CommandsToRun[UnityEngine.Random.Range(0, matchingSafeZone.CommandsToRun.Count)];
+                        if (randomCommandConfig.Trigger == CommandTrigger.Leave)
                         {
-                            RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
+                            RunCommand(player, randomCommandConfig.Type, randomCommandConfig.Command, matchingSafeZone.MonumentName);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var commandConfig in matchingSafeZone.CommandsToRun)
+                        {
+                            if (commandConfig.Trigger == CommandTrigger.Leave)
+                            {
+                                RunCommand(player, commandConfig.Type, commandConfig.Command, matchingSafeZone.MonumentName);
+                            }
                         }
                     }
 
@@ -243,7 +283,7 @@ namespace Oxide.Plugins
                     {
                         if (safeZone.BlacklistedCommands.Contains(commandLowercased))
                         {
-                            SendMessage(player, Lang.CommandBlocked);
+                            MessagePlayer(player, Lang.CommandBlocked);
                             return true;
                         }
                     }
@@ -308,14 +348,14 @@ namespace Oxide.Plugins
             string formattedMonumentName = GetMonumentNiceName(monumentName);
 
             string withPlaceholdersReplaced = command
-                .Replace("{playerId}", player.UserIDString)
-                .Replace("{playerName}", player.displayName)
-                .Replace("{positionX}", player.transform.position.x.ToString())
-                .Replace("{positionY}", player.transform.position.y.ToString())
-                .Replace("{positionZ}", player.transform.position.z.ToString())
-                .Replace("{grid}", PhoneController.PositionToGridCoord(player.transform.position))
-                .Replace("{monumentName}", formattedMonumentName);
-
+                .Replace("{PlayerId}", player.UserIDString)
+                .Replace("{PlayerName}", player.displayName)
+                .Replace("{PositionX}", player.transform.position.x.ToString())
+                .Replace("{PositionY}", player.transform.position.y.ToString())
+                .Replace("{PositionZ}", player.transform.position.z.ToString())
+                .Replace("{Grid}", PhoneController.PositionToGridCoord(player.transform.position))
+                .Replace("{MonumentName}", formattedMonumentName);
+            
             if (type == CommandType.Chat)
             {
                 player.Command(string.Format("chat.say \"{0}\"", withPlaceholdersReplaced));
@@ -373,13 +413,20 @@ namespace Oxide.Plugins
             }, this, "en");
         }
 
-        private void SendMessage(BasePlayer player, string messageKey, params object[] args)
+        private static string GetMessage(BasePlayer player, string messageKey, params object[] args)
         {
-            string message = lang.GetMessage(messageKey, this, player.UserIDString);
+            string message = _plugin.lang.GetMessage(messageKey, _plugin, player.UserIDString);
+
             if (args.Length > 0)
                 message = string.Format(message, args);
 
-            SendReply(player, message);
+            return message;
+        }
+
+        public static void MessagePlayer(BasePlayer player, string messageKey, params object[] args)
+        {
+            string message = GetMessage(player, messageKey, args);
+            _plugin.SendReply(player, message);
         }
 
         #endregion Localization
