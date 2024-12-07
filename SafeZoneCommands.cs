@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Oxide.Plugins
 {
-    [Info("Safe Zone Commands", "VisEntities", "1.2.0")]
+    [Info("Safe Zone Commands", "VisEntities", "1.2.1")]
     [Description("Execute and block commands in safe zones.")]
     public class SafeZoneCommands : RustPlugin
     {
@@ -217,7 +217,8 @@ namespace Oxide.Plugins
 
                     if (!string.IsNullOrEmpty(matchingSafeZone.EnterMessage))
                     {
-                        SendFormattedMessage(player, matchingSafeZone.EnterMessage, matchingSafeZone.MonumentName);
+                        string withPlaceholdersReplaced = ReplacePlaceholders(matchingSafeZone.EnterMessage, player, matchingSafeZone.MonumentName);
+                        SendReply(player, withPlaceholdersReplaced);
                     }
                 }
             }
@@ -262,7 +263,8 @@ namespace Oxide.Plugins
 
                     if (!string.IsNullOrEmpty(matchingSafeZone.LeaveMessage))
                     {
-                        SendFormattedMessage(player, matchingSafeZone.LeaveMessage, matchingSafeZone.MonumentName);
+                        string withPlaceholdersReplaced = ReplacePlaceholders(matchingSafeZone.LeaveMessage, player, matchingSafeZone.MonumentName);
+                        SendReply(player, withPlaceholdersReplaced);
                     }
                 }
             }
@@ -308,26 +310,6 @@ namespace Oxide.Plugins
 
         #endregion Monument Name Formatting
 
-        #region Enter and Leave Message Formatting
-
-        private void SendFormattedMessage(BasePlayer player, string message, string monumentName)
-        {
-            string formattedMonumentName = GetMonumentNiceName(monumentName);
-
-            string withPlaceholdersReplaced = message
-                .Replace("{playerId}", player.UserIDString)
-                .Replace("{playerName}", player.displayName)
-                .Replace("{positionX}", player.transform.position.x.ToString())
-                .Replace("{positionY}", player.transform.position.y.ToString())
-                .Replace("{positionZ}", player.transform.position.z.ToString())
-                .Replace("{grid}", PhoneController.PositionToGridCoord(player.transform.position))
-                .Replace("{monumentName}", formattedMonumentName);
-
-            SendReply(player, withPlaceholdersReplaced);
-        }
-
-        #endregion Enter and Leave Message Formatting
-
         #region Command Execution
 
         private enum CommandTrigger
@@ -345,17 +327,8 @@ namespace Oxide.Plugins
 
         private void RunCommand(BasePlayer player, CommandType type, string command, string monumentName)
         {
-            string formattedMonumentName = GetMonumentNiceName(monumentName);
+            string withPlaceholdersReplaced = ReplacePlaceholders(command, player, monumentName);
 
-            string withPlaceholdersReplaced = command
-                .Replace("{PlayerId}", player.UserIDString)
-                .Replace("{PlayerName}", player.displayName)
-                .Replace("{PositionX}", player.transform.position.x.ToString())
-                .Replace("{PositionY}", player.transform.position.y.ToString())
-                .Replace("{PositionZ}", player.transform.position.z.ToString())
-                .Replace("{Grid}", PhoneController.PositionToGridCoord(player.transform.position))
-                .Replace("{MonumentName}", formattedMonumentName);
-            
             if (type == CommandType.Chat)
             {
                 player.Command(string.Format("chat.say \"{0}\"", withPlaceholdersReplaced));
@@ -371,6 +344,24 @@ namespace Oxide.Plugins
         }
 
         #endregion Command Execution
+
+        #region Placeholder Replacement
+
+        private string ReplacePlaceholders(string input, BasePlayer player, string monumentName)
+        {
+            string formattedMonumentName = GetMonumentNiceName(monumentName);
+
+            return input
+                .Replace("{PlayerId}", player.UserIDString)
+                .Replace("{PlayerName}", player.displayName)
+                .Replace("{PositionX}", player.transform.position.x.ToString())
+                .Replace("{PositionY}", player.transform.position.y.ToString())
+                .Replace("{PositionZ}", player.transform.position.z.ToString())
+                .Replace("{Grid}", MapHelper.PositionToString(player.transform.position))
+                .Replace("{MonumentName}", formattedMonumentName);
+        }
+
+        #endregion Placeholder Replacement
 
         #region Permissions
 
